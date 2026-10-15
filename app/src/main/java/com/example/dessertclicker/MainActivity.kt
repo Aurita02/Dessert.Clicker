@@ -74,6 +74,8 @@ import com.example.dessertclicker.ui.theme.DessertClickerTheme
 import android.util.Log
 import androidx.compose.runtime.saveable.rememberSaveable
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 private const val TAG = "MainActivity"
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,7 +90,7 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .statusBarsPadding(),
                 ) {
-                    DessertClickerApp(desserts = Datasource.dessertList)
+                    DessertClickerApp()
                 }
             }
         }
@@ -173,66 +175,52 @@ private fun shareSoldDessertsInformation(intentContext: Context, dessertsSold: I
     }
 }
 
+
 @Composable
 private fun DessertClickerApp(
-    desserts: List<Dessert>
+    dessertClickerViewModel: DessertClickerViewModel = viewModel()
 ) {
-
-    var revenue by rememberSaveable { mutableStateOf(0) }
-    var dessertsSold by rememberSaveable { mutableStateOf(0) }
-
-    val currentDessertIndex by rememberSaveable { mutableStateOf(0) }
-
-    var currentDessertPrice by rememberSaveable {
-        mutableStateOf(desserts[currentDessertIndex].price)
-    }
-    var currentDessertImageId by rememberSaveable {
-        mutableStateOf(desserts[currentDessertIndex].imageId)
-    }
+    val uiState = dessertClickerViewModel.uiState
 
     Scaffold(
         topBar = {
             val intentContext = LocalContext.current
             val layoutDirection = LocalLayoutDirection.current
+
             DessertClickerAppBar(
                 onShareButtonClicked = {
                     shareSoldDessertsInformation(
                         intentContext = intentContext,
-                        dessertsSold = dessertsSold,
-                        revenue = revenue
+                        dessertsSold = uiState.dessertsSold,
+                        revenue = uiState.revenue
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        start = WindowInsets.safeDrawing.asPaddingValues()
+                        start = WindowInsets.safeDrawing
+                            .asPaddingValues()
                             .calculateStartPadding(layoutDirection),
-                        end = WindowInsets.safeDrawing.asPaddingValues()
-                            .calculateEndPadding(layoutDirection),
+                        end = WindowInsets.safeDrawing
+                            .asPaddingValues()
+                            .calculateEndPadding(layoutDirection)
                     )
                     .background(MaterialTheme.colorScheme.primary)
             )
         }
     ) { contentPadding ->
         DessertClickerScreen(
-            revenue = revenue,
-            dessertsSold = dessertsSold,
-            dessertImageId = currentDessertImageId,
+            revenue = uiState.revenue,
+            dessertsSold = uiState.dessertsSold,
+            dessertImageId = uiState.currentDessertImageId,
             onDessertClicked = {
-
-                // Update the revenue
-                revenue += currentDessertPrice
-                dessertsSold++
-
-                // Show the next dessert
-                val dessertToShow = determineDessertToShow(desserts, dessertsSold)
-                currentDessertImageId = dessertToShow.imageId
-                currentDessertPrice = dessertToShow.price
+                dessertClickerViewModel.onDessertClicked()
             },
             modifier = Modifier.padding(contentPadding)
         )
     }
 }
+
 
 @Composable
 private fun DessertClickerAppBar(
@@ -368,6 +356,6 @@ private fun DessertsSoldInfo(dessertsSold: Int, modifier: Modifier = Modifier) {
 @Composable
 fun MyDessertClickerAppPreview() {
     DessertClickerTheme {
-        DessertClickerApp(listOf(Dessert(R.drawable.cupcake, 5, 0)))
+        DessertClickerApp()
     }
 }
